@@ -53,17 +53,69 @@ Redis集群采用P2P的Gossip（流言）协议
 
 #### 集群在线伸缩
 ```shell script
-集群伸缩=槽和数据在节点之间的移动， 是以槽为基本单元移动。
-MOVED 节点确认槽不属于自己管理，返回正确的节点给客户端 
+集群伸缩=槽和数据在节点之间的移动,是以槽为基本单元移动。
+
 ASK 数据迁移过程时，一个槽的数据同时存在源节点和目标节点中，源节点返回客户端数据可能在目标节点时的意思，
 但是目标节点现在还不管理槽，需要客户端使用ASK(命令)强制,要求目标节点处理一次查询请求
+
+MOVED 节点确认槽不属于自己管理，返回正确的节点给客户端 
 
 redis-trib.rb工具支持
 ```
 
+#### 集群高可用
+```shell script
+主节点挂了,响应最快的从节点,被提升为主节点
+```
+
 # adidas redis sentinel 向 redis cluster 迁移做了什么？
+```shell script
+理论准备 
+    《Redis官方文档》Redis集群教程 :<https://ifeve.com/redis-cluster-tutorial/>
+    《Redis官方教程》Redis集群规范:<https://ifeve.com/redis-cluster-spec/>
+     redis 作者介绍redis cluster : <https://redis.io/presentation/Redis_Cluster.pdf>
+    《Redis深度历险：核心原理和应用实践》 集群3: 众志成城--Cluster
+    《Redis设计与实现 - 黄健宏》 第一部分 第二部分 第三部分
+    《Redis开发与运维(完整版)》 第10章
+现状分析和解决方案
+    sentinel 集群现状
+        4套sentinel 集群
+    客户端使用 jedis
+        问题: 缺点需要get值和set值时,需要显示编码序列化和反序列化,影响代码可读性
+        方案: RedisTemplate 启动时初始化value的序列化方式,代码简洁,和redis命令契合度高,学习成本小
+    存在两种序列化方式
+        集成cluster 之后,一个客户端,需要区分使用不同序列化方式的key,
+        维护两种序列化方式,代码改动量很大,容易出错,咨询林哥后决定统一成kryo,性能最好 
+    上线cluster 时是否需要将 sentinel 中的数据迁移到 cluster? 不需要,memberToken 和refreshToken 影响APP的问题
+    spring mvc 项目集成cluster
+    
+    集群功能限制  
+    Redis集群相对单机在功能上存在一些限制
+    当key集合属于不同节点时的合并操作,"不支持" (mget,pipline,trasation) 
+    "不支持" 需要指定 solt_tag 才能使用
+        保持合并操作现状的话，需要保证区分key位于同样的节点，几乎不可能（时间和代码阅读量上）,于是拆分了合并的操作
+     (分布式数据库的代价 redis cluster 合并操作，mget， shareding-sphere 的union操作)
+开发过程和上线方案
+1)环境准备
+    本来联系邹大师想要测试环境机器,用于自己搭建cluster 集群,直接得到了一个可用的测试集群! 节约了大量时间
+2)重新实现客户端
+   
+3) 单元测试客户端get,set方法
+   
+4) 替换原有访问 sentinel 的客户端
 
+5) 这个时候要压测了,beta环境被占用没有环境测试 注册到下单主流程 ,所以在压测环境观察redis相关报错日志加fix...
 
+6) 因为决定不迁移数据,所以没有一次性把 sentinel 配置移除,以防修改不彻底
+
+7）beta环境空出,测试介入主流程，测试了重度使用redis 的场景
+    注册到下单主流程 ，登陆加速，商品缓存
+8) 上线,谨慎起见让大家陪到了 11点发布（虽然最后看redis 内存和QPS 和5-6点差不多）
+9） 林哥发现sentinel 链接数没有按预期下降 = sentinel 没有替换完全... hub,protostar-backend ,wormhole...
+10) 移除所有项目对 redis-sentinel 配置的引用, spring boot 项目对cluster的集成
+11) 完结撒花
+12）后续问题, cluster 集群缓存命中率统计太低，需要继续跟进
+``` 
 	
 ### 问题？
 
