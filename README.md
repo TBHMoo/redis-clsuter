@@ -71,12 +71,7 @@ redis-trib.rb工具支持
 # adidas redis sentinel 向 redis cluster 迁移做了什么？
 ```shell script
 理论准备 
-    《Redis官方文档》Redis集群教程 :<https://ifeve.com/redis-cluster-tutorial/>
-    《Redis官方教程》Redis集群规范:<https://ifeve.com/redis-cluster-spec/>
-     redis 作者介绍redis cluster : <https://redis.io/presentation/Redis_Cluster.pdf>
-    《Redis深度历险：核心原理和应用实践》 集群3: 众志成城--Cluster
-    《Redis设计与实现 - 黄健宏》 第一部分 第二部分 第三部分
-    《Redis开发与运维(完整版)》 第10章
+
 现状分析和解决方案
     sentinel 集群现状
         4套sentinel 集群
@@ -95,6 +90,7 @@ redis-trib.rb工具支持
     "不支持" 需要指定 solt_tag 才能使用
         保持合并操作现状的话，需要保证区分key位于同样的节点，几乎不可能（时间和代码阅读量上）,于是拆分了合并的操作
      (分布式数据库的代价 redis cluster 合并操作，mget， shareding-sphere 的union操作)
+
 开发过程和上线方案
 1)环境准备
     本来联系邹大师想要测试环境机器,用于自己搭建cluster 集群,直接得到了一个可用的测试集群! 节约了大量时间
@@ -113,8 +109,7 @@ redis-trib.rb工具支持
 8) 上线,谨慎起见让大家陪到了 11点发布（虽然最后看redis 内存和QPS 和5-6点差不多）
 9） 林哥发现sentinel 链接数没有按预期下降 = sentinel 没有替换完全... hub,protostar-backend ,wormhole...
 10) 移除所有项目对 redis-sentinel 配置的引用, spring boot 项目对cluster的集成
-11) 完结撒花
-12）后续问题, cluster 集群缓存命中率统计太低，需要继续跟进
+
 ``` 
 	
 ### 问题？
